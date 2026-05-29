@@ -1,9 +1,8 @@
-
-
 import streamlit as st
 import pandas as pd
 import joblib
 import warnings
+import os
 
 warnings.filterwarnings("ignore")
 
@@ -19,17 +18,34 @@ st.set_page_config(
 )
 
 # =========================================================
-# LOAD FILES
+# BASE DIRECTORY FIX (IMPORTANT FOR STREAMLIT CLOUD)
+# =========================================================
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# =========================================================
+# LOAD FILES (SAFE VERSION)
 # =========================================================
 
 @st.cache_resource
 def load_model():
 
-    model = joblib.load("telecom_churn_model.pkl")
+    model_path = os.path.join(BASE_DIR, "telecom_churn_model.pkl")
+    features_path = os.path.join(BASE_DIR, "features.pkl")
 
-    features = joblib.load("features.pkl")
+    if not os.path.exists(model_path):
+        st.error(f"❌ Model file not found: {model_path}")
+        st.stop()
+
+    if not os.path.exists(features_path):
+        st.error(f"❌ Features file not found: {features_path}")
+        st.stop()
+
+    model = joblib.load(model_path)
+    features = joblib.load(features_path)
 
     return model, features
+
 
 model, features = load_model()
 
@@ -68,14 +84,6 @@ section[data-testid="stSidebar"] * {
     background: linear-gradient(to right, #06b6d4, #2563eb);
 }
 
-.card {
-    background: #111827;
-    padding: 25px;
-    border-radius: 18px;
-    border: 1px solid #1f2937;
-    text-align: center;
-}
-
 .footer {
     text-align: center;
     color: #9ca3af;
@@ -91,10 +99,7 @@ section[data-testid="stSidebar"] * {
 
 st.title("📡 AI Telecom Customer Churn Prediction Platform")
 
-st.markdown(
-    "Predict customer churn, revenue loss, and retention risk using Machine Learning."
-)
-
+st.markdown("Predict customer churn, revenue loss, and retention risk using Machine Learning.")
 st.markdown("---")
 
 # =========================================================
@@ -103,26 +108,11 @@ st.markdown("---")
 
 st.sidebar.header("Customer Information")
 
-tenure = st.sidebar.slider(
-    "Tenure (Months)",
-    0,
-    72,
-    12
-)
+tenure = st.sidebar.slider("Tenure (Months)", 0, 72, 12)
 
-monthly_charges = st.sidebar.number_input(
-    "Monthly Charges",
-    10.0,
-    500.0,
-    80.0
-)
+monthly_charges = st.sidebar.number_input("Monthly Charges", 10.0, 500.0, 80.0)
 
-total_charges = st.sidebar.number_input(
-    "Total Charges",
-    0.0,
-    10000.0,
-    1500.0
-)
+total_charges = st.sidebar.number_input("Total Charges", 0.0, 10000.0, 1500.0)
 
 contract = st.sidebar.selectbox(
     "Contract Type",
@@ -136,29 +126,16 @@ internet_service = st.sidebar.selectbox(
 
 payment_method = st.sidebar.selectbox(
     "Payment Method",
-    [
-        "Electronic check",
-        "Mailed check",
-        "Bank transfer",
-        "Credit card"
-    ]
+    ["Electronic check", "Mailed check", "Bank transfer", "Credit card"]
 )
 
 # =========================================================
 # ENCODING
 # =========================================================
 
-contract_map = {
-    "Month-to-month": 0,
-    "One year": 1,
-    "Two year": 2
-}
+contract_map = {"Month-to-month": 0, "One year": 1, "Two year": 2}
 
-internet_map = {
-    "DSL": 0,
-    "Fiber optic": 1,
-    "No": 2
-}
+internet_map = {"DSL": 0, "Fiber optic": 1, "No": 2}
 
 payment_map = {
     "Electronic check": 0,
@@ -168,11 +145,10 @@ payment_map = {
 }
 
 # =========================================================
-# DEFAULT INPUT VALUES
+# INPUT DATA
 # =========================================================
 
 default_values = {
-
     "gender": 1,
     "SeniorCitizen": 0,
     "Partner": 1,
@@ -192,55 +168,25 @@ default_values = {
     "PaymentMethod": payment_map[payment_method],
     "MonthlyCharges": monthly_charges,
     "TotalCharges": total_charges
-
 }
-
-# =========================================================
-# MATCH FEATURES
-# =========================================================
 
 final_input = {}
 
 for feature in features:
-
-    if feature in default_values:
-
-        final_input[feature] = default_values[feature]
-
-    else:
-
-        final_input[feature] = 0
+    final_input[feature] = default_values.get(feature, 0)
 
 input_data = pd.DataFrame([final_input])
-
 input_data = input_data[features]
 
 # =========================================================
-# DASHBOARD
+# METRICS
 # =========================================================
 
 c1, c2, c3 = st.columns(3)
 
-with c1:
-
-    st.metric(
-        "Monthly Charges",
-        f"$ {monthly_charges}"
-    )
-
-with c2:
-
-    st.metric(
-        "Tenure",
-        f"{tenure} Months"
-    )
-
-with c3:
-
-    st.metric(
-        "Total Charges",
-        f"$ {total_charges}"
-    )
+c1.metric("Monthly Charges", f"$ {monthly_charges}")
+c2.metric("Tenure", f"{tenure} Months")
+c3.metric("Total Charges", f"$ {total_charges}")
 
 st.markdown("---")
 
@@ -251,89 +197,40 @@ st.markdown("---")
 if st.button("Predict Churn"):
 
     prediction = model.predict(input_data)[0]
-
-    probability = model.predict_proba(
-        input_data
-    )[0][1] * 100
-
-    # =====================================================
-    # RISK LEVEL
-    # =====================================================
-
-    if probability >= 75:
-
-        risk = "🔴 HIGH RISK"
-
-        recommendation = """
-        Offer discounts and loyalty benefits immediately.
-        """
-
-    elif probability >= 45:
-
-        risk = "🟠 MEDIUM RISK"
-
-        recommendation = """
-        Improve customer engagement and support quality.
-        """
-
-    else:
-
-        risk = "🟢 LOW RISK"
-
-        recommendation = """
-        Customer appears stable and satisfied.
-        """
-
-    # =====================================================
-    # REVENUE LOSS
-    # =====================================================
+    probability = model.predict_proba(input_data)[0][1] * 100
 
     revenue_loss = monthly_charges * 12
 
-    # =====================================================
-    # RESULTS
-    # =====================================================
+    if probability >= 75:
+        risk = "🔴 HIGH RISK"
+        recommendation = "Offer discounts and loyalty benefits immediately."
+
+    elif probability >= 45:
+        risk = "🟠 MEDIUM RISK"
+        recommendation = "Improve customer engagement and support quality."
+
+    else:
+        risk = "🟢 LOW RISK"
+        recommendation = "Customer appears stable and satisfied."
 
     st.subheader("📊 Prediction Results")
 
-    r1, r2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
-    with r1:
-
-        st.metric(
-            "Churn Probability",
-            f"{probability:.2f}%"
-        )
-
+    with col1:
+        st.metric("Churn Probability", f"{probability:.2f}%")
         st.progress(int(probability))
 
-    with r2:
-
-        st.metric(
-            "Expected Revenue Loss",
-            f"$ {revenue_loss:.2f}"
-        )
-
+    with col2:
+        st.metric("Revenue Loss", f"$ {revenue_loss:.2f}")
         st.info(risk)
 
     if prediction == 1:
-
-        st.error(
-            "Customer likely to churn."
-        )
-
+        st.error("Customer likely to churn.")
     else:
-
-        st.success(
-            "Customer likely to stay."
-        )
-
-    # =====================================================
-    # RETENTION RECOMMENDATION
-    # =====================================================
+        st.success("Customer likely to stay.")
 
     st.markdown("## 💡 Retention Recommendation")
-
     st.info(recommendation)
 
 # =========================================================
@@ -342,12 +239,8 @@ if st.button("Predict Churn"):
 
 st.markdown("---")
 
-st.markdown(
-    """
-    <div class="footer">
-    Built with Streamlit • Random Forest • Telecom Analytics AI
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
+st.markdown("""
+<div class="footer">
+Built with Streamlit • Random Forest • Telecom Analytics AI
+</div>
+""", unsafe_allow_html=True)
