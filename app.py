@@ -1,49 +1,41 @@
 import streamlit as st
 import pandas as pd
 import joblib
-import warnings
 import os
+import warnings
 
 warnings.filterwarnings("ignore")
 
 # =========================================================
-# PAGE CONFIG
+# CONFIG
 # =========================================================
 
 st.set_page_config(
-    page_title="AI Telecom Churn Platform",
+    page_title="AI Telecom Churn Dashboard",
     page_icon="📡",
     layout="wide"
 )
 
-# =========================================================
-# BASE DIR
-# =========================================================
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # =========================================================
-# LOAD MODEL ONLY (NO features.pkl NEEDED)
+# LOAD MODEL
 # =========================================================
 
 @st.cache_resource
 def load_model():
-
     model_path = os.path.join(BASE_DIR, "telecom_churn_model.pkl")
 
     if not os.path.exists(model_path):
-        st.error(f"❌ Model file not found: {model_path}")
+        st.error("❌ Model file not found!")
         st.stop()
 
-    model = joblib.load(model_path)
-
-    return model
-
+    return joblib.load(model_path)
 
 model = load_model()
 
 # =========================================================
-# DEFINE FEATURES DIRECTLY (FIX)
+# FEATURES (NO PICKLE NEEDED)
 # =========================================================
 
 features = [
@@ -56,10 +48,86 @@ features = [
 ]
 
 # =========================================================
+# CSS (PROFESSIONAL UI)
+# =========================================================
+
+st.markdown("""
+<style>
+
+body {
+    background-color: #0f172a;
+}
+
+.main {
+    background: linear-gradient(to right, #0f172a, #111827);
+    color: white;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background: #0b1220;
+}
+
+/* Cards */
+.card {
+    background: rgba(255,255,255,0.05);
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+/* Buttons */
+.stButton>button {
+    width: 100%;
+    background: linear-gradient(135deg, #2563eb, #06b6d4);
+    color: white;
+    padding: 0.6rem;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    transition: 0.3s;
+}
+
+.stButton>button:hover {
+    transform: scale(1.02);
+    background: linear-gradient(135deg, #06b6d4, #2563eb);
+}
+
+/* Title */
+.title {
+    font-size: 40px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    color: gray;
+    margin-top: 30px;
+    font-size: 13px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# =========================================================
+# HEADER
+# =========================================================
+
+st.markdown("<div class='title'>📡 Telecom Churn AI Dashboard</div>", unsafe_allow_html=True)
+
+st.markdown("### Predict customer churn using Machine Learning in real-time dashboard style UI")
+st.markdown("---")
+
+# =========================================================
 # SIDEBAR INPUTS
 # =========================================================
 
-st.sidebar.header("Customer Information")
+st.sidebar.header("Customer Profile")
 
 tenure = st.sidebar.slider("Tenure (Months)", 0, 72, 12)
 
@@ -67,15 +135,13 @@ monthly_charges = st.sidebar.number_input("Monthly Charges", 10.0, 500.0, 80.0)
 
 total_charges = st.sidebar.number_input("Total Charges", 0.0, 10000.0, 1500.0)
 
-contract = st.sidebar.selectbox("Contract Type",
-                                ["Month-to-month", "One year", "Two year"])
+contract = st.sidebar.selectbox("Contract", ["Month-to-month", "One year", "Two year"])
 
-internet_service = st.sidebar.selectbox("Internet Service",
-                                        ["DSL", "Fiber optic", "No"])
+internet = st.sidebar.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
 
-payment_method = st.sidebar.selectbox("Payment Method",
-                                      ["Electronic check", "Mailed check",
-                                       "Bank transfer", "Credit card"])
+payment = st.sidebar.selectbox("Payment Method",
+                               ["Electronic check", "Mailed check",
+                                "Bank transfer", "Credit card"])
 
 # =========================================================
 # ENCODING
@@ -91,10 +157,10 @@ payment_map = {
 }
 
 # =========================================================
-# INPUT VALUES
+# INPUT DATA
 # =========================================================
 
-default_values = {
+values = {
     "gender": 1,
     "SeniorCitizen": 0,
     "Partner": 1,
@@ -102,7 +168,7 @@ default_values = {
     "tenure": tenure,
     "PhoneService": 1,
     "MultipleLines": 0,
-    "InternetService": internet_map[internet_service],
+    "InternetService": internet_map[internet],
     "OnlineSecurity": 0,
     "OnlineBackup": 1,
     "DeviceProtection": 1,
@@ -111,45 +177,69 @@ default_values = {
     "StreamingMovies": 1,
     "Contract": contract_map[contract],
     "PaperlessBilling": 1,
-    "PaymentMethod": payment_map[payment_method],
+    "PaymentMethod": payment_map[payment],
     "MonthlyCharges": monthly_charges,
     "TotalCharges": total_charges
 }
 
-# =========================================================
-# BUILD INPUT DATA
-# =========================================================
-
-input_data = pd.DataFrame([{f: default_values.get(f, 0) for f in features}])
+input_df = pd.DataFrame([{f: values.get(f, 0) for f in features}])
 
 # =========================================================
-# UI
+# DASHBOARD METRICS
 # =========================================================
 
-st.title("📡 Telecom Churn Prediction")
+col1, col2, col3 = st.columns(3)
 
-c1, c2, c3 = st.columns(3)
+with col1:
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.metric("Monthly Charges", f"${monthly_charges}")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-c1.metric("Monthly Charges", f"${monthly_charges}")
-c2.metric("Tenure", f"{tenure} months")
-c3.metric("Total Charges", f"${total_charges}")
+with col2:
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.metric("Tenure", f"{tenure} Months")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with col3:
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.metric("Total Charges", f"${total_charges}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("---")
 
 # =========================================================
-# PREDICTION
+# PREDICTION BUTTON
 # =========================================================
 
-if st.button("Predict Churn"):
+if st.button("🔍 Predict Churn"):
 
-    prediction = model.predict(input_data)[0]
+    prediction = model.predict(input_df)[0]
+    probability = model.predict_proba(input_df)[0][1] * 100
 
-    probability = model.predict_proba(input_data)[0][1] * 100
+    st.subheader("📊 Prediction Result")
 
-    st.subheader("Results")
+    colA, colB = st.columns(2)
 
-    st.metric("Churn Probability", f"{probability:.2f}%")
-    st.progress(int(probability))
+    with colA:
+        st.metric("Churn Probability", f"{probability:.2f}%")
+        st.progress(int(probability))
+
+    with colB:
+        st.metric("Risk Level", "HIGH" if probability > 70 else "LOW")
 
     if prediction == 1:
-        st.error("Customer likely to churn")
+        st.error("⚠️ Customer is likely to CHURN")
     else:
-        st.success("Customer likely to stay")
+        st.success("✅ Customer is likely to STAY")
+
+# =========================================================
+# FOOTER
+# =========================================================
+
+st.markdown("---")
+
+st.markdown("""
+<div class='footer'>
+Built with ❤️ using Streamlit • Telecom AI Dashboard
+</div>
+""", unsafe_allow_html=True)
