@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore")
 # =========================================================
 
 st.set_page_config(
-    page_title="AI Telecom Churn Dashboard",
+    page_title="Telecom AI Dashboard",
     page_icon="📡",
     layout="wide"
 )
@@ -19,23 +19,21 @@ st.set_page_config(
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # =========================================================
-# LOAD MODEL
+# MODEL LOAD
 # =========================================================
 
 @st.cache_resource
 def load_model():
-    model_path = os.path.join(BASE_DIR, "telecom_churn_model.pkl")
-
-    if not os.path.exists(model_path):
-        st.error("❌ Model file not found!")
+    path = os.path.join(BASE_DIR, "telecom_churn_model.pkl")
+    if not os.path.exists(path):
+        st.error("Model file missing!")
         st.stop()
-
-    return joblib.load(model_path)
+    return joblib.load(path)
 
 model = load_model()
 
 # =========================================================
-# FEATURES (NO PICKLE NEEDED)
+# FEATURES
 # =========================================================
 
 features = [
@@ -48,46 +46,89 @@ features = [
 ]
 
 # =========================================================
-# CSS (PROFESSIONAL UI)
+# ADVANCED CSS (PRO LEVEL UI)
 # =========================================================
 
 st.markdown("""
 <style>
 
-body {
-    background-color: #0f172a;
-}
-
-.main {
-    background: linear-gradient(to right, #0f172a, #111827);
+/* BACKGROUND */
+.stApp {
+    background: radial-gradient(circle at top left, #0f172a, #020617);
     color: white;
+    font-family: 'Segoe UI', sans-serif;
 }
 
-/* Sidebar */
+/* REMOVE STREAMLIT DEFAULT PADDING */
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+/* TITLE */
+.main-title {
+    font-size: 42px;
+    font-weight: 800;
+    text-align: center;
+    background: linear-gradient(90deg, #38bdf8, #6366f1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 5px;
+}
+
+.sub-title {
+    text-align: center;
+    font-size: 16px;
+    color: #94a3b8;
+    margin-bottom: 25px;
+}
+
+/* SIDEBAR */
 section[data-testid="stSidebar"] {
     background: #0b1220;
+    border-right: 1px solid #1f2937;
 }
 
-/* Cards */
+section[data-testid="stSidebar"] * {
+    color: #e2e8f0;
+}
+
+/* CARD STYLE */
 .card {
-    background: rgba(255,255,255,0.05);
-    padding: 20px;
-    border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    transition: 0.3s ease;
 }
 
-/* Buttons */
+.card:hover {
+    transform: translateY(-4px);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+/* METRICS */
+div[data-testid="metric-container"] {
+    background: rgba(255,255,255,0.04);
+    border-radius: 14px;
+    padding: 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* BUTTON */
 .stButton>button {
     width: 100%;
-    background: linear-gradient(135deg, #2563eb, #06b6d4);
-    color: white;
-    padding: 0.6rem;
-    border-radius: 10px;
+    padding: 0.75rem;
     font-size: 18px;
-    font-weight: bold;
+    font-weight: 600;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #2563eb, #06b6d4);
     border: none;
-    transition: 0.3s;
+    color: white;
+    transition: 0.3s ease;
 }
 
 .stButton>button:hover {
@@ -95,20 +136,17 @@ section[data-testid="stSidebar"] {
     background: linear-gradient(135deg, #06b6d4, #2563eb);
 }
 
-/* Title */
-.title {
-    font-size: 40px;
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 10px;
+/* PROGRESS BAR */
+.stProgress > div > div > div > div {
+    background: linear-gradient(90deg, #22c55e, #06b6d4);
 }
 
-/* Footer */
+/* FOOTER */
 .footer {
     text-align: center;
-    color: gray;
-    margin-top: 30px;
+    color: #64748b;
     font-size: 13px;
+    margin-top: 30px;
 }
 
 </style>
@@ -118,27 +156,23 @@ section[data-testid="stSidebar"] {
 # HEADER
 # =========================================================
 
-st.markdown("<div class='title'>📡 Telecom Churn AI Dashboard</div>", unsafe_allow_html=True)
+st.markdown("<div class='main-title'>📡 Telecom AI Churn Dashboard</div>", unsafe_allow_html=True)
+st.markdown("<div class='sub-title'>Predict customer churn using Machine Learning & AI analytics</div>", unsafe_allow_html=True)
 
-st.markdown("### Predict customer churn using Machine Learning in real-time dashboard style UI")
 st.markdown("---")
 
 # =========================================================
-# SIDEBAR INPUTS
+# SIDEBAR
 # =========================================================
 
-st.sidebar.header("Customer Profile")
+st.sidebar.header("👤 Customer Profile")
 
 tenure = st.sidebar.slider("Tenure (Months)", 0, 72, 12)
-
-monthly_charges = st.sidebar.number_input("Monthly Charges", 10.0, 500.0, 80.0)
-
-total_charges = st.sidebar.number_input("Total Charges", 0.0, 10000.0, 1500.0)
+monthly = st.sidebar.number_input("Monthly Charges", 10.0, 500.0, 80.0)
+total = st.sidebar.number_input("Total Charges", 0.0, 10000.0, 1500.0)
 
 contract = st.sidebar.selectbox("Contract", ["Month-to-month", "One year", "Two year"])
-
-internet = st.sidebar.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
-
+internet = st.sidebar.selectbox("Internet", ["DSL", "Fiber optic", "No"])
 payment = st.sidebar.selectbox("Payment Method",
                                ["Electronic check", "Mailed check",
                                 "Bank transfer", "Credit card"])
@@ -178,56 +212,63 @@ values = {
     "Contract": contract_map[contract],
     "PaperlessBilling": 1,
     "PaymentMethod": payment_map[payment],
-    "MonthlyCharges": monthly_charges,
-    "TotalCharges": total_charges
+    "MonthlyCharges": monthly,
+    "TotalCharges": total
 }
 
 input_df = pd.DataFrame([{f: values.get(f, 0) for f in features}])
 
 # =========================================================
-# DASHBOARD METRICS
+# TOP METRICS (PRO GRID)
 # =========================================================
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.metric("Monthly Charges", f"${monthly_charges}")
+    st.metric("💰 Monthly Charges", f"${monthly}")
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col2:
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.metric("Tenure", f"{tenure} Months")
+    st.metric("⏳ Tenure", f"{tenure} months")
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col3:
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.metric("Total Charges", f"${total_charges}")
+    st.metric("💳 Total Charges", f"${total}")
     st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown("---")
+st.markdown("##")
 
 # =========================================================
-# PREDICTION BUTTON
+# PREDICTION SECTION
 # =========================================================
 
-if st.button("🔍 Predict Churn"):
+if st.button("🚀 Predict Churn Risk"):
 
-    prediction = model.predict(input_df)[0]
-    probability = model.predict_proba(input_df)[0][1] * 100
+    pred = model.predict(input_df)[0]
+    prob = model.predict_proba(input_df)[0][1] * 100
 
-    st.subheader("📊 Prediction Result")
+    st.markdown("## 📊 Prediction Dashboard")
 
-    colA, colB = st.columns(2)
+    colA, colB = st.columns([1.2, 1])
 
     with colA:
-        st.metric("Churn Probability", f"{probability:.2f}%")
-        st.progress(int(probability))
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+        st.metric("Churn Probability", f"{prob:.2f}%")
+        st.progress(int(prob))
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with colB:
-        st.metric("Risk Level", "HIGH" if probability > 70 else "LOW")
+        risk = "🔴 HIGH" if prob > 70 else "🟠 MEDIUM" if prob > 40 else "🟢 LOW"
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+        st.metric("Risk Level", risk)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    if prediction == 1:
+    st.markdown("### Result")
+
+    if pred == 1:
         st.error("⚠️ Customer is likely to CHURN")
     else:
         st.success("✅ Customer is likely to STAY")
@@ -237,9 +278,4 @@ if st.button("🔍 Predict Churn"):
 # =========================================================
 
 st.markdown("---")
-
-st.markdown("""
-<div class='footer'>
-Built with ❤️ using Streamlit • Telecom AI Dashboard
-</div>
-""", unsafe_allow_html=True)
+st.markdown("<div class='footer'>Built with Streamlit • AI Powered Telecom Analytics Dashboard</div>", unsafe_allow_html=True)
